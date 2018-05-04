@@ -3,7 +3,6 @@ from .elsapy import elsclient
 from .elsapy.elsprofile import ElsAuthor, ElsAffil
 from .elsapy.elsdoc import FullDoc, AbsDoc, ElsAbstract, ElsSerial
 from .elsapy.elssearch import ElsSearch
-import json
 
 
 def get_docs_by_year(year, get_all=False):
@@ -29,7 +28,6 @@ def get_doc_authors(doc_id):
     abstract.read(client)
     for author in abstract.authors:
         yield (doc_id, author.get('@auid', None), author.get('@seq', None))
-    # yield from [(doc_id, author.get('@auid', None), author.get('@seq', None)) for author in abstract.authors]
 
 
 def get_author(author_id):
@@ -38,30 +36,37 @@ def get_author(author_id):
     if not author.read(client):
         print("[!]Read author failed: {0}", author_id)
     return author.data
-    # data = [author.int_id, author.first_name, author.last_name, author.full_name]
-    # affl_data = []
-    # affl_history = author.data['author-profile']['affiliation-history']['affiliation']
-    # # Use the first JHU affiliation - This might not be accurate
-    # affl = None
-    # if isinstance(affl_history, dict):
-    #     affl = affl_history
-    # else:
-    #     for affiliation in affl_history:
-    #         if affiliation['@affiliation-id'] == JHU_ID:
-    #             affl = affiliation
-    #         elif '@parent' in affiliation and affiliation['@parent'] == JHU_ID:
-    #             affl = affiliation
-    #             break
-    # if affl is None:
-    #     print("[!]Can't find JHU affiliation for {0}", author_id)
-    #     data.append(None)
-    # else:
-    #     data.append(affl['@affiliation-id'])
-    # #print(affl_history) if affl['@affiliation-id'] == JHU_ID
-    # parent = affl['@parent'] if '@parent' in affl else None
-    # affl_data = [affl['@affiliation-id'], affl['ip-doc']['preferred-name']['$'], affl['ip-doc']['@type'], parent]
-    # print(affl_data)
-    # return data, affl_data
+
+
+def get_author_affl(author_data):
+    author_id = author_data['coredata']['dc:identifier']
+    author_id = author_id[author_id.find(':') + 1:]
+    if 'affiliation-history' in author_data:
+        affl_history = author_data.get('affiliation-history', {}).get('affiliation', {})
+        if isinstance(affl_history, dict):
+            yield (author_id, affl_history['@id'], 1)
+        else:
+            for idx, val in enumerate(affl_history):
+                yield (author_id, val['@id'], idx+1)
+    else:
+        affl_history = author_data['affiliation-current']
+        yield (author_id, affl_history['@id'], 1)
+
+
+def get_affiliation(affl_id):
+    client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
+    affl = ElsAffil(affil_id=affl_id)
+    if not affl.read(client):
+        print("[!]Read affiliation failed: {0}", affl_id)
+    yield affl.data
+    # retrieve ancestors
+    parent_id = affl.parent
+    while parent_id is not None:
+        parent = ElsAffil(affil_id=parent_id)
+        if not parent.read(client):
+            print("[!]Read affiliation failed: {0}", parent_id)
+        yield parent.data
+        parent_id = parent.parent
 
 
 def get_serial(issn):

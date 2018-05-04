@@ -59,12 +59,28 @@ def get_graph(**options):
         bonobo.CsvWriter('doc-authors.csv'),
         _input=transform_identifier
     )
+    # Author
     graph.add_chain(
         Uniquify(1),
         lambda *args: args[1],
         get_author,
         bonobo.JsonWriter('authors.json'),
         _input=get_doc_authors
+    )
+    # Author Affiliation
+    graph.add_chain(
+        get_author_affl,
+        bonobo.PrettyPrinter(),
+        bonobo.CsvWriter('author-affl.csv'),
+        _input=get_author
+    )
+    # Affiliations
+    graph.add_chain(
+        Uniquify(1),
+        lambda *args: args[1],
+        get_affiliation,
+        bonobo.JsonWriter('affiliation.json'),
+        _input=get_author_affl
     )
     # Serial
     graph.add_chain(
