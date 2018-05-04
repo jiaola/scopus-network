@@ -195,3 +195,4 @@ class ElsAffil(ElsProfile):
         """Fetches the list of documents associated with this affiliation from
               api.elsevier.com. Returns True if successful; else, False."""
         return ElsProfile.read_docs(self, self.__payload_type, els_client)
+

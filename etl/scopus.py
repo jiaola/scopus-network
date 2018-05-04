@@ -1,21 +1,42 @@
 import bonobo
+from .elsapi import *
+from .transformers import *
+
 
 def extract():
     """Placeholder, change, rename, remove... """
-    yield 'hello'
-    yield 'world'
+    yield from get_docs_by_year(1966, False)
 
 
-def transform(*args):
+def transform_identifier(args):
     """Placeholder, change, rename, remove... """
-    yield tuple(
-        map(str.title, args)
-    )
+    dc_id = args['dc:identifier']
+    return {
+        **args,
+        'dc:identifier': dc_id[dc_id.find(':') + 1:]
+    }
 
 
-def load(*args):
+def extract_id(args):
+    return args['dc:identifier']
+
+
+def extract_doc_issn(args):
+    if 'prism:eIssn' in args:
+        return args['prism:eIssn']
+    elif 'prism:issn' in args:
+        return args['prism:issn']
+    else:
+        return None
+
+
+def extract_author_from_row(args):
+    return args[1]
+
+
+def load(args):
     """Placeholder, change, rename, remove... """
-    print(*args)
+    print(args)
 
 
 def get_graph(**options):
@@ -26,7 +47,36 @@ def get_graph(**options):
 
     """
     graph = bonobo.Graph()
-    graph.add_chain(extract, transform, load)
+    graph.add_chain(
+        get_docs_by_year(1966, False),
+        bonobo.Limit(5),
+        transform_identifier,
+        bonobo.JsonWriter('docs.json')
+    )
+    graph.add_chain(
+        extract_id,
+        get_doc_authors,
+        bonobo.CsvWriter('doc-authors.csv'),
+        _input=transform_identifier
+    )
+    graph.add_chain(
+        Uniquify(1),
+        lambda *args: args[1],
+        get_author,
+        bonobo.JsonWriter('authors.json'),
+        _input=get_doc_authors
+    )
+    # Serial
+    graph.add_chain(
+        extract_doc_issn,
+        Uniquify(),
+        get_serial,
+        bonobo.JsonWriter('serial.json'),
+        _input=transform_identifier
+    )
+    # graph.add_chain(
+    #     _input=get_author
+    # )
 
     return graph
 

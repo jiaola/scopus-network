@@ -20,8 +20,10 @@ class ElsSearch():
         """Initializes a search object with a query and target index."""
         self.query = query
         self.index = index
-        params['query'] = query
-        self._uri = self.__base_url + self.index + '?' + parse.urlencode(params)
+        self.params = params
+        # There is a bug in scopus API. Params are dropped in links if they appear in front of the 'query' param.
+        # Make sure query appear the first in the query string in the URL
+        self._uri = self.__base_url + self.index + '?' + parse.urlencode({'query': query, **params})
 
     # properties
     @property
@@ -83,7 +85,7 @@ class ElsSearch():
                     if e['@ref'] == 'next':
                         next_url = e['@href']
                 api_response = els_client.exec_request(next_url)
-                self._results += api_response['search-results']['entry']         
+                self._results += api_response['search-results']['entry']
 
     def hasAllResults(self):
         """Returns true if the search object has retrieved all results for the
