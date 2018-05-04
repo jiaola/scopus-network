@@ -21,6 +21,24 @@ def get_docs_by_year(year, get_all=False):
     return all_results
 
 
+def get_document(doc_id):
+    """Retrieves a document"""
+    client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
+    doc = ElsAbstract(scopus_id=doc_id)
+    doc.read(client)
+    return doc.data
+
+
+def get_doc_refs(doc_id):
+    """Retrieves references of a document"""
+    client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
+    refs = ElsAbstract(scopus_id=doc_id, params={'view': 'REF'})
+    refs.read(client)
+    if refs.data is not None:  # Some documents have no reference data
+        for ref in refs.data.get('references', {}).get('reference', []):
+            yield (doc_id, ref['scopus-id'], ref['@id'])
+
+
 def get_doc_authors(doc_id):
     """Retrieves document-author relationship in tuples"""
     client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
@@ -81,4 +99,4 @@ if __name__ == '__main__':
     # get_docs_by_year('1966', True)
     # print(get_doc_authors('85044277409'))
     # print(get_author('7203039214'))
-    print(get_serial('00368075'))
+    print(get_doc_refs('85041118154'))

@@ -17,8 +17,19 @@ pipenv install
 
 Environment variables are set in `.env` file. It's not tracked in git, so it has to be created manually. 
 
-The .env file will be automatically loaded with pipenv shell is started, or python is run with pipenv. Therefore, make sure to run commands in the 
-pipenv shell when developing/testing, or use `pipenv run python` when running python from command line. 
+The .env file will be automatically loaded with pipenv shell is started, or python is run with pipenv. Therefore, 
+make sure to run commands in the pipenv shell when developing/testing, or prepend `pipenv run python` when running python 
+from command line.
+
+## ETL
+
+Bonobo is used to create the ETL process. Run the following to extract from scopus:
+
+```bash
+bonobo run -m etl.scopus
+``` 
+
+Note: you need to start `pipenv shell` first or prepend `pipenv run` before the bonobo command. 
 
 ## Testing
 
@@ -33,3 +44,12 @@ To run an individual test:
 ```bash
 pytest tests/test_main.py
 ```
+
+## Visualize ETL workflow
+
+Bonobo can generate a graph visualization of the ETL process. Again, start `pipenv shell` first or 
+prepend `pipenv run` before the following command. 
+
+```bash
+bonobo inspect --graph -m etl.scopus | dot -o scopus.png -T png
+``` 
