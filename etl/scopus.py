@@ -16,15 +16,6 @@ def extract_id(args):
     return args['dc:identifier']
 
 
-def extract_doc_issn(args):
-    if 'prism:eIssn' in args:
-        return args['prism:eIssn']
-    elif 'prism:issn' in args:
-        return args['prism:issn']
-    else:
-        return None
-
-
 def extract_author_from_row(args):
     return args[1]
 
@@ -45,13 +36,13 @@ def get_graph(**options):
     graph.add_chain(
         Uniquify(),
         get_document,
-        bonobo.JsonWriter('docs.json'),
+        bonobo.JsonWriter('results/docs.json'),
         _input=None,
         _name='write_docs'
     )
     graph.add_chain(
-        get_docs_by_year(2016, False),
-        bonobo.Limit(3),
+        get_docs_by_year(2018, True),
+        #bonobo.Limit(2),
         transform_identifier,
         extract_id,
         _output='write_docs'
@@ -59,50 +50,53 @@ def get_graph(**options):
     # Refs
     graph.add_chain(
         get_doc_refs,
-        bonobo.CsvWriter('doc-refs.csv'),
-        lambda *args: args[1],
-        _input=extract_id,
+        bonobo.UnpackItems(0),
+        bonobo.CsvWriter('results/doc-refs.csv'),
+        _input=extract_id
+    )
+    graph.add_chain(
+        lambda args: args['ref'],
+        _input=get_doc_refs,
         _output='write_docs'
     )
     # doc-author
     graph.add_chain(
         get_doc_authors,
-        bonobo.CsvWriter('doc-authors.csv'),
+        bonobo.UnpackItems(0),
+        bonobo.CsvWriter('results/doc-authors.csv'),
         _input=extract_id
     )
     # Author
     graph.add_chain(
-        Uniquify(1),
-        lambda *args: args[1],
+        lambda args: args['author'],
+        Uniquify(),
         get_author,
-        bonobo.JsonWriter('authors.json'),
+        bonobo.JsonWriter('results/authors.json'),
         _input=get_doc_authors
     )
     # Author Affiliation
     graph.add_chain(
         get_author_affl,
-        bonobo.PrettyPrinter(),
-        bonobo.CsvWriter('author-affl.csv'),
+        bonobo.UnpackItems(0),
+        bonobo.CsvWriter('results/author-affl.csv'),
         _input=get_author
     )
     # Affiliations
     graph.add_chain(
-        Uniquify(1),
-        lambda *args: args[1],
+        lambda args: args['affiliation'],
+        Uniquify(),
         get_affiliation,
-        bonobo.JsonWriter('affiliation.json'),
+        bonobo.JsonWriter('results/affiliation.json'),
         _input=get_author_affl
     )
     # Serial
     graph.add_chain(
-        extract_doc_issn,
+        lambda args: args['coredata'].get('source-id', None),
         Uniquify(),
         get_serial,
-        bonobo.JsonWriter('serial.json'),
-        _input=transform_identifier
+        bonobo.JsonWriter('results/serial.json'),
+        _input=get_document
     )
-
-
     return graph
 
 
@@ -116,7 +110,9 @@ def get_services(**options):
 
     :return: dict
     """
-    return {}
+    return {
+        'fs.output': bonobo.open_fs()
+    }
 
 
 # The __main__ block actually execute the graph.

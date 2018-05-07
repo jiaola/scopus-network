@@ -135,17 +135,17 @@ class ElsSerial(ElsEntity):
     __uri_base = u'http://api.elsevier.com/content/serial/title'
 
     #constroctor
-    def __init__(self, uri='', issn='', params={}):
-        if uri and not issn:
+    def __init__(self, uri='', scopus_id='', params={}):
+        if uri and not scopus_id:
             s_uri = uri
             super().__init__(uri)
-        elif issn and not uri:
-            params['issn'] = issn
+        elif scopus_id and not uri:
+            params['source-id'] = scopus_id
             s_uri = self.__uri_base + '?' + parse.urlencode(params)
-        elif not uri and not issn:
-            raise ValueError('No URI or ISSN specified')
+        elif not uri and not scopus_id:
+            raise ValueError('No URI or scopus id specified')
         else:
-            raise ValueError('Both URI and ISSN specified; just need one.')
+            raise ValueError('Both URI and scopus id specified; just need one.')
         print(s_uri)
         super().__init__(s_uri)
 

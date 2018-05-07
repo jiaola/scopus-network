@@ -17,9 +17,9 @@ def get_logger(name):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     # create log path, if not already there
-    logPath = Path('logs')
-    if not logPath.exists():
-        logPath.mkdir()
+    log_path = Path('logs')
+    if not log_path.exists():
+        log_path.mkdir()
     # create file handler which logs even debug messages
     fh = logging.FileHandler('logs/elsapy-%s.log' % time.strftime('%Y%m%d'))
     fh.setLevel(logging.DEBUG)
