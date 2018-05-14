@@ -26,7 +26,7 @@ from command line.
 Bonobo is used to create the ETL process. Run the following to extract from scopus:
 
 ```bash
-bonobo run -m etl.scopus
+pipenv run bonobo run -m etl.scopus
 ``` 
 
 Note: you need to start `pipenv shell` first or prepend `pipenv run` before the bonobo command. 
@@ -51,5 +51,5 @@ Bonobo can generate a graph visualization of the ETL process. Again, start `pipe
 prepend `pipenv run` before the following command. 
 
 ```bash
-bonobo inspect --graph -m etl.scopus | dot -o scopus.png -T png
+pipenv run bonobo inspect --graph -m etl.scopus | dot -o scopus.png -T png
 ``` 

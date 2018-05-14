@@ -30,7 +30,14 @@ def get_document(doc_id):
     client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
     doc = ElsAbstract(scopus_id=doc_id)
     doc.read(client)
-    return doc.data
+    doc_data = doc.data
+    doc_data['_id'] = doc_data['coredata']['dc:identifier'].split(':')[1]
+    refs = get_doc_refs(doc_data['_id'])
+    if refs:
+        doc_data['references'] = refs.get('references', {}).get('reference', [])
+    else:
+        doc_data['references'] = []
+    return doc_data
 
 
 def get_doc_refs(doc_id):
@@ -39,8 +46,24 @@ def get_doc_refs(doc_id):
     refs = ElsAbstract(scopus_id=doc_id, params={'view': 'REF'})
     refs.read(client)
     if refs.data is not None:  # Some documents have no reference data
-        for ref in refs.data.get('references', {}).get('reference', []):
-            yield {'doc': doc_id, 'ref': ref['scopus-id'], 'seq': ref['@id']}
+        return refs.data
+        # for ref in refs.data.get('references', {}).get('reference', []):
+        #     yield {'doc': doc_id, 'ref': ref['scopus-id'], 'seq': ref['@id']}
+
+
+def get_authors_from_doc(doc):
+    for author in doc.get('authors', {}).get('author', []):
+        affl = author['affiliation']
+        if isinstance(affl, list):
+            if next(a for a in affl if a['@id'] == '6005248'):
+                yield author
+            for a in affl:
+                if a['@id'] == '6005248':
+                    yield author
+                    break
+        else:
+            if affl['@id'] == '60005248':
+                yield author
 
 
 def get_doc_authors(doc_id):
@@ -57,6 +80,7 @@ def get_author(author_id):
     author = ElsAuthor(author_id=author_id)
     if not author.read(client):
         logger.error("[!]Read author failed: %s", author_id)
+    author.data['_id'] = author.data['coredata']['dc:identifier'].split(':')[1]
     return author.data
 
 
@@ -80,15 +104,17 @@ def get_affiliation(affl_id):
     affl = ElsAffil(affil_id=affl_id)
     if not affl.read(client):
         logger.error("[!]Read affiliation failed: %s", affl_id)
+    affl.data['_id'] = affl.data['coredata']['dc:identifier'].split(':')[1]
     yield affl.data
     # retrieve ancestors
-    parent_id = affl.parent
-    while parent_id is not None:
-        parent = ElsAffil(affil_id=parent_id)
-        if not parent.read(client):
-            logger.error("[!]Read affiliation failed: %s", parent_id)
-        yield parent.data
-        parent_id = parent.parent
+    # parent_id = affl.parent
+    # while parent_id is not None:
+    #     parent = ElsAffil(affil_id=parent_id)
+    #     if not parent.read(client):
+    #         logger.error("[!]Read affiliation failed: %s", parent_id)
+    #     parent.data['_id'] = parent.data['coredata']['dc:identifier'].split(':')[1]
+    #     yield parent.data
+    #     parent_id = parent.parent
 
 
 def get_serial(serial_id):
@@ -100,11 +126,15 @@ def get_serial(serial_id):
     if 'error' in serial.data:
         logger.error("[!]Read serial with error: %s, %s", serial.data['error'], serial_id)
     else:
-        return serial.data['entry']['0']
+        data = serial.data['entry'][0]
+        data['_id'] = data['source-id']
+        return data
 
 
 if __name__ == '__main__':
     # get_docs_by_year('1966', True)
     # print(get_doc_authors('85044277409'))
     # print(get_author('7203039214'))
-    print(get_doc_refs('85041118154'))
+    # print(get_doc_refs('85041118154'))
+    print('for test only')
+

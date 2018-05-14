@@ -1,19 +1,11 @@
 import bonobo
+from pymongo import MongoClient
 from .elsapi import *
 from .transformers import *
 
 
-def transform_identifier(args):
-    """Placeholder, change, rename, remove... """
-    dc_id = args['dc:identifier']
-    return {
-        **args,
-        'dc:identifier': dc_id[dc_id.find(':') + 1:]
-    }
-
-
 def extract_id(args):
-    return args['dc:identifier']
+    return args['dc:identifier'].split(':')[1]
 
 
 def extract_author_from_row(args):
@@ -34,67 +26,44 @@ def get_graph(**options):
     """
     graph = bonobo.Graph()
     graph.add_chain(
-        Uniquify(),
-        get_document,
-        bonobo.JsonWriter('results/docs.json'),
-        _input=None,
-        _name='write_docs'
-    )
-    graph.add_chain(
         get_docs_by_year(2018, True),
-        #bonobo.Limit(2),
-        transform_identifier,
         extract_id,
-        _output='write_docs'
-    )
-    # Refs
-    graph.add_chain(
-        get_doc_refs,
-        bonobo.UnpackItems(0),
-        bonobo.CsvWriter('results/doc-refs.csv'),
-        _input=extract_id
-    )
-    graph.add_chain(
-        lambda args: args['ref'],
-        _input=get_doc_refs,
-        _output='write_docs'
-    )
-    # doc-author
-    graph.add_chain(
-        get_doc_authors,
-        bonobo.UnpackItems(0),
-        bonobo.CsvWriter('results/doc-authors.csv'),
-        _input=extract_id
+        get_document,
+        FilterDuplicate(collection='document', field='_id'),
+        MongoWriter(collection='document')
     )
     # Author
     graph.add_chain(
-        lambda args: args['author'],
-        Uniquify(),
+        get_authors_from_doc,
+        FilterDuplicate(collection='author', field='@auid'),
+        lambda args: args['@auid'],
         get_author,
-        bonobo.JsonWriter('results/authors.json'),
-        _input=get_doc_authors
+        MongoWriter(collection='author'),
+        # bonobo.JsonWriter('results/authors.json'),
+        _input=get_document
     )
     # Author Affiliation
-    graph.add_chain(
-        get_author_affl,
-        bonobo.UnpackItems(0),
-        bonobo.CsvWriter('results/author-affl.csv'),
-        _input=get_author
-    )
-    # Affiliations
-    graph.add_chain(
-        lambda args: args['affiliation'],
-        Uniquify(),
-        get_affiliation,
-        bonobo.JsonWriter('results/affiliation.json'),
-        _input=get_author_affl
-    )
-    # Serial
+    # graph.add_chain(
+    #     get_author_affl,
+    #     bonobo.UnpackItems(0),
+    #     bonobo.CsvWriter('results/author-affl.csv'),
+    #     _input=get_author
+    # )
+    # # Affiliations - Skip. Instead, use the affiliation API to retrieve JHU affiliations
+    # graph.add_chain(
+    #     get_author_affl,
+    #     FilterDuplicate(collection='affiliation', field='affiliation'),
+    #     lambda args: args['affiliation'],
+    #     get_affiliation,
+    #     MongoWriter(collection='affiliation'),
+    #     _input=get_author
+    # )
+    # Serial By ID
     graph.add_chain(
         lambda args: args['coredata'].get('source-id', None),
-        Uniquify(),
+        FilterDuplicate(collection='serial'),
         get_serial,
-        bonobo.JsonWriter('results/serial.json'),
+        MongoWriter(collection='serial'),
         _input=get_document
     )
     return graph
@@ -111,7 +80,7 @@ def get_services(**options):
     :return: dict
     """
     return {
-        'fs.output': bonobo.open_fs()
+        'mongodb.client': MongoClient('localhost', 27017)
     }
 
 

@@ -1,7 +1,26 @@
 import bonobo
-from bonobo.config import use, ContextProcessor, Configurable, Option
+from bonobo.config import use, ContextProcessor, Configurable, Option, Service
 from bonobo.util.objects import ValueHolder
 from bonobo.constants import NOT_MODIFIED
+
+
+def fix_keys(o):
+    """
+    There's an issue if the key starts with '$' when inserting into mongo.
+    This function replaces the starting '$' with '_' in any key of an object
+    :param o: the object
+    :return: an object with all keys fixed
+    """
+    if isinstance(o, list):
+        return [fix_keys(x) for x in o]
+    elif isinstance(o, dict):
+        d = {}
+        for k, v in o.items():
+            new_k = '_' + k[1:] if k[0] == '$' else k
+            d[new_k] = fix_keys(v)
+        return d
+    else:
+        return o
 
 
 class Uniquify(Configurable):
@@ -17,3 +36,32 @@ class Uniquify(Configurable):
             unique_set.add(args[self.field])
             yield NOT_MODIFIED
 
+
+class FilterDuplicate(Configurable):
+    field = Option(positional=True, default=0)
+    database = Option(str, positional=True, default='scopus', __doc__='the mongo database')
+    collection = Option(str, positional=True, default='', __doc__='the mongo collection')
+    client = Service('mongodb.client')
+
+    def __call__(self, args, *, client):
+        if self.collection == 'serial':
+            print('args:', args)
+        db = client[self.database]
+        collection = db[self.collection]
+        if isinstance(args, dict) or isinstance(args, list):
+            if collection.find_one({'_id': args[self.field]}) is None:
+                yield NOT_MODIFIED
+        else:
+            if collection.find_one({'_id': args}) is None:
+                yield NOT_MODIFIED
+
+
+class MongoWriter(Configurable):
+    database = Option(str, positional=True, default='scopus', __doc__='the mongo database')
+    collection = Option(str, positional=True, default='', __doc__='the mongo collection')
+    client = Service('mongodb.client')
+
+    def __call__(self, args, *, client):
+        db = client[self.database]
+        collection = db[self.collection]
+        collection.insert_one(fix_keys(args))
