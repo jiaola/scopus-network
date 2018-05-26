@@ -9,7 +9,7 @@ from urllib import parse
 
 logger = log_util.get_logger(__name__)
 
-class ElsSearch():
+class ElsSearch:
     """Represents a search to one of the search indexes accessible
          through api.elsevier.com. Returns True if successful; else, False."""
 
@@ -91,3 +91,27 @@ class ElsSearch():
         """Returns true if the search object has retrieved all results for the
             query from the index (i.e. num_res equals tot_num_res)."""
         return (self.num_res is self.tot_num_res)
+
+
+class ElsSerialTitleSearch(ElsSearch):
+    __base_url = u'https://api.elsevier.com/content/serial/title'
+
+    def __init__(self, title, params={}):
+        """Initializes a search object with a query and target index."""
+        self._title = title
+        self._params = params
+        # There is a bug in scopus API. Params are dropped in links if they appear in front of the 'query' param.
+        # Make sure query appear the first in the query string in the URL
+        self._uri = self.__base_url + '?' + parse.urlencode({'title': title, **params})
+
+    @property
+    def title(self):
+        return self._title
+
+    @title.setter
+    def title(self, title):
+        self._title = title
+
+    def execute(self, els_client=None):
+        api_response = els_client.exec_request(self._uri)
+        self._results = api_response['serial-metadata-response']['entry']
