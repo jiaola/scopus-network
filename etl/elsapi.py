@@ -2,7 +2,7 @@ import os
 from .elsapy import elsclient
 from .elsapy.elsprofile import ElsAuthor, ElsAffil
 from .elsapy.elsdoc import FullDoc, AbsDoc, ElsAbstract, ElsSerial
-from .elsapy.elssearch import ElsSearch
+from .elsapy.elssearch import ElsSearch, ElsSerialTitleSearch
 
 from .elsapy import log_util
 
@@ -130,6 +130,15 @@ def get_serial(serial_id):
         data['_id'] = data['source-id']
         return data
 
+
+def get_serial_by_title(title):
+    logger.info('searching serial by title: ' + title)
+    client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
+    search = ElsSerialTitleSearch(title)
+    search.execute(client)
+    for serial in search.results:
+        serial['_id'] = serial['source-id']
+        yield serial
 
 if __name__ == '__main__':
     # get_docs_by_year('1966', True)
