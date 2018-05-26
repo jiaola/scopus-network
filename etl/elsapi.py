@@ -33,10 +33,14 @@ def get_document(doc_id):
     doc_data = doc.data
     doc_data['_id'] = doc_data['coredata']['dc:identifier'].split(':')[1]
     refs = get_doc_refs(doc_data['_id'])
+    if isinstance(doc_data['affiliation'], dict):
+        doc_data['affiliation'] = [doc_data['affiliation']]
     if refs:
-        doc_data['references'] = refs.get('references', {}).get('reference', [])
-    else:
-        doc_data['references'] = []
+        refs_data = refs.get('references', {}).get('reference', [])
+        if isinstance(refs_data, list):
+            doc_data['references'] = refs_data
+        elif isinstance(refs_data, dict):
+            doc_data['references'] = [refs_data]
     return doc_data
 
 
@@ -45,10 +49,7 @@ def get_doc_refs(doc_id):
     client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
     refs = ElsAbstract(scopus_id=doc_id, params={'view': 'REF'})
     refs.read(client)
-    if refs.data is not None:  # Some documents have no reference data
-        return refs.data
-        # for ref in refs.data.get('references', {}).get('reference', []):
-        #     yield {'doc': doc_id, 'ref': ref['scopus-id'], 'seq': ref['@id']}
+    return refs.data
 
 
 def get_authors_from_doc(doc):
