@@ -39,21 +39,35 @@ class Uniquify(Configurable):
 
 class FilterDuplicate(Configurable):
     field = Option(positional=True, default=0)
+    target = Option(positional=True, default='_id')
     database = Option(str, positional=True, default='scopus', __doc__='the mongo database')
     collection = Option(str, positional=True, default='', __doc__='the mongo collection')
     client = Service('mongodb.client')
 
     def __call__(self, args, *, client):
-        if self.collection == 'serial':
-            print('args:', args)
         db = client[self.database]
         collection = db[self.collection]
         if isinstance(args, dict) or isinstance(args, list):
-            if collection.find_one({'_id': args[self.field]}) is None:
+            if collection.find_one({self.target: args[self.field]}) is None:
                 yield NOT_MODIFIED
         else:
-            if collection.find_one({'_id': args}) is None:
+            if collection.find_one({self.target: args}) is None:
                 yield NOT_MODIFIED
+
+
+class FilterSerialTitle(Configurable):
+    """
+    Check if a title already exists
+    """
+    database = Option(str, positional=True, default='scopus', __doc__='the mongo database')
+    collection = Option(str, positional=True, default='serial', __doc__='the mongo collection')
+    client = Service('mongodb.client')
+
+    def __call__(self, title, count, *, client):
+        db = client[self.database]
+        collection = db[self.collection]
+        if collection.find_one({'dc:title': {'$in': [title, 'The '+title]}}) is None:
+            yield NOT_MODIFIED
 
 
 class MongoWriter(Configurable):
