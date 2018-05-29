@@ -42,7 +42,7 @@ pytest tests
 To run an individual test:
 
 ```bash
-pytest tests/test_main.py
+pipenv run pytest tests/test_main.py
 ```
 
 ## Visualize ETL workflow
