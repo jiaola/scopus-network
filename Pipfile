@@ -12,6 +12,7 @@ lxml = "*"
 bonobo = "*"
 python-dotenv = "*"
 pymongo = "*"
+findspark = "*"
 
 [dev-packages]
 pytest = "*"
