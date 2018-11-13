@@ -36,13 +36,15 @@ Note: you need to start `pipenv shell` first or prepend `pipenv run` before the 
 [py.test](https://docs.pytest.org/en/latest/) is used to run tests: 
 
 ```bash
-pytest tests 
+pipenv run pytest -s tests 
 ```
+
+( the '-s' option print out debugging information to the console )
 
 To run an individual test:
 
 ```bash
-pipenv run pytest tests/test_main.py
+pipenv run pytest -s tests/test_main.py
 ```
 
 ## Visualize ETL workflow
@@ -53,3 +55,8 @@ prepend `pipenv run` before the following command.
 ```bash
 pipenv run bonobo inspect --graph -m etl.scopus | dot -o scopus.png -T png
 ``` 
+
+## Biophysics
+```bash 
+pipenv run bonobo run -m etl.biophysics
+```

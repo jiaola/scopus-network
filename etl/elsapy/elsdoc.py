@@ -10,6 +10,7 @@ from urllib import parse
 
 logger = log_util.get_logger(__name__)
 
+
 class FullDoc(ElsEntity):
     """A document in ScienceDirect. Initialize with PII or DOI."""
 
@@ -50,6 +51,7 @@ class FullDoc(ElsEntity):
         else:
             return False
 
+
 class ElsAbstract(ElsEntity):
     """A document abstract with other information such as authors"""
 
@@ -80,7 +82,6 @@ class ElsAbstract(ElsEntity):
             raise ValueError('No URI, Scopus ID or DOI specified')
         super().__init__(s_uri)
 
-
     def read(self, els_client=None):
         """Reads the JSON representation of the document from ELSAPI.
              Returns True if successful; else, False."""
@@ -88,6 +89,7 @@ class ElsAbstract(ElsEntity):
             return True
         else:
             return False
+
 
 class AbsDoc(ElsEntity):
     """A document in Scopus. Initialize with URI or Scopus ID."""

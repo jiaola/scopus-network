@@ -13,6 +13,9 @@ bonobo = "*"
 python-dotenv = "*"
 pymongo = "*"
 findspark = "*"
+numpy = "*"
+plotly = "*"
+python-ldap = "*"
 
 [dev-packages]
 pytest = "*"

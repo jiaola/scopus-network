@@ -18,7 +18,7 @@ class ElsSearch:
 
     def __init__(self, query, index, params={}):
         """Initializes a search object with a query and target index."""
-        self.query = query
+        self._query = query
         self.index = index
         self.params = params
         # There is a bug in scopus API. Params are dropped in links if they appear in front of the 'query' param.

@@ -8,13 +8,22 @@ def extract_id(args):
     return args['dc:identifier'].split(':')[1]
 
 
-def extract_author_from_row(args):
-    return args[1]
-
-
 def load(args):
-    """Placeholder, change, rename, remove... """
     print(args)
+
+
+def extract_authors(args):
+    for author in args['results']:
+        yield author
+
+
+def create_author_document(args):
+    data = {
+        'first_name': args['first_name'],
+        'last_name': args['last_name'],
+        'scopus_ids': [extract_id(x) for x in args['results']]
+    }
+    yield data
 
 
 def get_graph(**options):
@@ -26,47 +35,39 @@ def get_graph(**options):
     """
     graph = bonobo.Graph()
     graph.add_chain(
-        get_docs_by_year(2018, False),
-        extract_id,
-        bonobo.Limit(2),
-        FilterDuplicate(collection='document', field='_id', database='test'),
-        get_document,
-        MongoWriter(collection='document', database='test')
+        bonobo.CsvReader('data/biophysics/faculty.csv'),
+        get_author_by_name,
+        create_author_document,
+        MongoWriter(collection='jhu-authors', database='assessments'),
     )
-    # Author
+
     graph.add_chain(
-        get_authors_from_doc,
-        FilterDuplicate(collection='author', field='@auid', database='test'),
-        lambda args: args['@auid'],
+        extract_authors,
+        extract_id,
+        FilterDuplicate(collection='scopus-authors', database='assessments'),
         get_author,
-        MongoWriter(collection='author', database='test'),
-        # bonobo.JsonWriter('results/authors.json'),
-        _input=get_document
+        MongoWriter(collection='scopus-authors', database='assessments'),
+        _input=get_author_by_name
     )
-    # Author Affiliation
-    # graph.add_chain(
-    #     get_author_affl,
-    #     bonobo.UnpackItems(0),
-    #     bonobo.CsvWriter('results/author-affl.csv'),
-    #     _input=get_author
-    # )
-    # # Affiliations - Skip. Instead, use the affiliation API to retrieve JHU affiliations
-    # graph.add_chain(
-    #     get_author_affl,
-    #     FilterDuplicate(collection='affiliation', field='affiliation'),
-    #     lambda args: args['affiliation'],
-    #     get_affiliation,
-    #     MongoWriter(collection='affiliation'),
-    #     _input=get_author
-    # )
-    # Serial By ID
+
+    graph.add_chain(
+        extract_id,
+        get_docs_by_author,
+        extract_id,
+        FilterDuplicate(collection='scopus-documents', field='_id', database='assessments'),
+        get_document,
+        MongoWriter(collection='scopus-documents', database='assessments'),
+        _input=extract_authors
+    )
+
     graph.add_chain(
         lambda args: args['coredata'].get('source-id', None),
-        FilterDuplicate(collection='serial', database='test'),
+        FilterDuplicate(collection='scopus-serials', database='assessments'),
         get_serial,
-        MongoWriter(collection='serial', database='test'),
+        MongoWriter(collection='scopus-serials', database='assessments'),
         _input=get_document
     )
+
     return graph
 
 

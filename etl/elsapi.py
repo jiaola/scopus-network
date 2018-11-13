@@ -25,6 +25,14 @@ def get_docs_by_year(year, get_all=False):
     return all_results
 
 
+def get_docs_by_author(author_id):
+    client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
+    search = ElsSearch(f'au-id({author_id})', 'scopus')
+    search.execute(client, True)
+    for doc in search.results:
+        yield doc
+
+
 def get_document(doc_id):
     """Retrieves a document"""
     client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
@@ -33,7 +41,7 @@ def get_document(doc_id):
     doc_data = doc.data
     doc_data['_id'] = doc_data['coredata']['dc:identifier'].split(':')[1]
     refs = get_doc_refs(doc_data['_id'])
-    if isinstance(doc_data['affiliation'], dict):
+    if 'affiliation' in doc_data and isinstance(doc_data['affiliation'], dict):
         doc_data['affiliation'] = [doc_data['affiliation']]
     if refs:
         refs_data = refs.get('references', {}).get('reference', [])
@@ -140,6 +148,16 @@ def get_serial_by_title(title):
     for serial in search.results:
         serial['_id'] = serial['source-id']
         yield serial
+
+
+def get_author_by_name(last_name, first_name, affiliation_id='60005248'):
+    logger.info('searching authors by name and affiliation')
+    query = f'authlast({last_name}) and authfirst({first_name}) and af-id({affiliation_id})'
+    client = elsclient.ElsClient(os.environ['SCOPUS_APIKEY'])
+    search = ElsSearch(query, 'author')
+    search.execute(client)
+    yield {'first_name': first_name, 'last_name': last_name, 'results': search.results}
+
 
 if __name__ == '__main__':
     # get_docs_by_year('1966', True)
